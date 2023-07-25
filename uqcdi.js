@@ -100,7 +100,7 @@ document.addEventListener("DOMContentLoaded", function () {
     setCookie(LR_SESSION_IDENTIFIER, sessionId, 0.5); // 0.5 days expiration
   }
 
-  if (!userId) {
+  if (!userId && queryParamUserId) {
     setCookie(LR_USER_IDENTIFIER, queryParamUserId, 30);
   }
 
