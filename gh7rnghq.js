@@ -24,14 +24,6 @@ function getCookie(cname) {
   return "";
 }
 
-function lr_init() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const user_id = urlParams.get(LR_USER_IDENTIFIER);
-  if (user_id) {
-    setCookie(LR_USER_IDENTIFIER, user_id);
-  }
-}
-
 function lr_sendEvent() {
   let xhr = new XMLHttpRequest();
   xhr.open("POST", LR_EVENT_API);
@@ -92,7 +84,7 @@ function sendToCallsineEventAPI(data) {
   xhrPost.send(JSON.stringify(data));
 }
 
-function lr_sendEvent_V2() {
+function lr_sendEvent_V2(userId, sessionId) {
   // Send a GET request to retrieve IP details
   var xhrIP = new XMLHttpRequest();
   xhrIP.open("GET", "https://ipapi.co/json/", true);
@@ -101,10 +93,10 @@ function lr_sendEvent_V2() {
     if (xhrIP.readyState === 4 && xhrIP.status === 200) {
       var response = JSON.parse(xhrIP.responseText);
 
-      let user_id = getCookie(LR_USER_IDENTIFIER); // Assuming getCookie is a function you have
       var data = {
         timestamp: new Date().toISOString(),
-        user_id: user_id,
+        session_id: sessionId,
+        user_id: userId,
         event: "page_view",
         reference_id: "person_id",
         page: window.location.href,
@@ -123,5 +115,21 @@ function lr_sendEvent_V2() {
   xhrIP.send();
 }
 
-lr_init();
-lr_sendEvent_V2();
+document.addEventListener("DOMContentLoaded", function () {
+  let sessionId = getCookie("lr_session_id");
+  let userId = getCookie(LR_USER_IDENTIFIER);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const queryParamUserId = urlParams.get(LR_USER_IDENTIFIER);
+
+  if (!sessionId) {
+    sessionId = generateUniqueId();
+    setCookie("lr_session_id", sessionId, 0.5); // 0.5 days expiration
+  }
+
+  if (!userId) {
+    setCookie(LR_USER_IDENTIFIER, queryParamUserId, 30);
+  }
+
+  lr_sendEvent_V2(userId, sessionId);
+});
