@@ -1,59 +1,19 @@
 const LR_USER_IDENTIFIER = "lr_id";
+const LR_SESSION_IDENTIFIER = "lr_session_id";
 const LR_EVENT_API = "https://api.leadresolution.io/api/analytics/events/";
 const CALLSINE_EVENT_API = "https://api.callsine.com/v1/analytics/create/";
 
-function setCookie(cname, cvalue, exdays) {
+function setCookie(name, value, days) {
   const d = new Date();
-  d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
-  let expires = "expires=" + d.toUTCString();
-  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+  d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+  const expires = "expires=" + d.toUTCString();
+  document.cookie = name + "=" + value + ";" + expires + ";path=/";
 }
 
-function getCookie(cname) {
-  let name = cname + "=";
-  let ca = document.cookie.split(";");
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) === " ") {
-      c = c.substring(1);
-    }
-    if (c.indexOf(name) === 0) {
-      return c.substring(name.length, c.length);
-    }
-  }
-  return "";
-}
-
-function lr_init() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const user_id = urlParams.get(LR_USER_IDENTIFIER);
-  if (user_id) {
-    setCookie(LR_USER_IDENTIFIER, user_id);
-  }
-}
-
-function lr_sendEvent() {
-  let xhr = new XMLHttpRequest();
-  xhr.open("POST", LR_EVENT_API);
-  xhr.setRequestHeader("Accept", "application/json");
-  xhr.setRequestHeader("Content-Type", "application/json");
-
-  xhr.onreadystatechange = function () {
-    if (xhr.readyState === 4) {
-      console.log(xhr.status);
-      console.log(xhr.responseText);
-    }
-  };
-
-  let user_id = getCookie(LR_USER_IDENTIFIER); // Can be a unique id representing a lead
-  let data = `{
-  "timestamp": "${new Date().toISOString()}",
-  "user_id": "${user_id}",
-  "event": "page_view",
-  "page": "${window.location.href}"
-}`;
-
-  xhr.send(data);
+function getCookie(name) {
+  const value = "; " + document.cookie;
+  const parts = value.split("; " + name + "=");
+  if (parts.length == 2) return parts.pop().split(";").shift();
 }
 
 function sendToLREventAPI(data, callback) {
@@ -92,7 +52,7 @@ function sendToCallsineEventAPI(data) {
   xhrPost.send(JSON.stringify(data));
 }
 
-function lr_sendEvent_V2() {
+function lr_sendEvent_V2(userId, sessionId) {
   // Send a GET request to retrieve IP details
   var xhrIP = new XMLHttpRequest();
   xhrIP.open("GET", "https://ipapi.co/json/", true);
@@ -101,10 +61,10 @@ function lr_sendEvent_V2() {
     if (xhrIP.readyState === 4 && xhrIP.status === 200) {
       var response = JSON.parse(xhrIP.responseText);
 
-      let user_id = getCookie(LR_USER_IDENTIFIER); // Assuming getCookie is a function you have
       var data = {
         timestamp: new Date().toISOString(),
-        user_id: user_id,
+        session_id: sessionId,
+        user_id: userId,
         event: "page_view",
         reference_id: "person_id",
         page: window.location.href,
@@ -123,5 +83,26 @@ function lr_sendEvent_V2() {
   xhrIP.send();
 }
 
-lr_init();
-lr_sendEvent_V2();
+function generateUniqueId() {
+  // Generate a unique session ID (could be a simple timestamp + random number combo or UUID)
+  return Date.now() + "-" + Math.random().toString(36).substr(2, 9);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  let sessionId = getCookie(LR_SESSION_IDENTIFIER);
+  let userId = getCookie(LR_USER_IDENTIFIER);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const queryParamUserId = urlParams.get(LR_USER_IDENTIFIER);
+
+  if (!sessionId) {
+    sessionId = generateUniqueId();
+    setCookie(LR_SESSION_IDENTIFIER, sessionId, 0.5); // 0.5 days expiration
+  }
+
+  if (!userId) {
+    setCookie(LR_USER_IDENTIFIER, queryParamUserId, 30);
+  }
+
+  lr_sendEvent_V2(userId, sessionId);
+});
