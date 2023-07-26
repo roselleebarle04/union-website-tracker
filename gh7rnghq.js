@@ -65,6 +65,7 @@ function lr_sendEvent_V2(userId, sessionId) {
         timestamp: new Date().toISOString(),
         session_id: sessionId,
         user_id: userId,
+        referrer: document.referrer,
         event: "page_view",
         reference_id: "person_id",
         page: window.location.href,
@@ -101,8 +102,24 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   if (!userId && queryParamUserId) {
+    userId = queryParamUserId;
     setCookie(LR_USER_IDENTIFIER, queryParamUserId, 30);
   }
+  // A flag to ensure the event is sent only once
+  let eventSent = false;
 
-  lr_sendEvent_V2(userId, sessionId);
+  function sendEvent() {
+    if (!eventSent) {
+      lr_sendEvent_V2(userId, sessionId);
+      eventSent = true;
+
+      // Optional: Remove listeners after firing the event to prevent repetitive execution
+      document.removeEventListener("scroll", sendEvent);
+      document.removeEventListener("click", sendEvent);
+    }
+  }
+
+  // Add event listeners for scroll and click events
+  document.addEventListener("scroll", sendEvent);
+  document.addEventListener("click", sendEvent);
 });
