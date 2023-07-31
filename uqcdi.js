@@ -90,6 +90,8 @@ function generateUniqueId() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+  console.log("LR", "DOMContentLoaded");
+
   let sessionId = getCookie(LR_SESSION_IDENTIFIER);
   let userId = getCookie(LR_USER_IDENTIFIER);
 
