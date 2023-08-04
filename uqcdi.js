@@ -89,42 +89,45 @@ function generateUniqueId() {
   return Date.now() + "-" + Math.random().toString(36).substr(2, 9);
 }
 
-console.log("Script loaded");
-(function () {
-  document.addEventListener("DOMContentLoaded", function () {
-    console.log("DOM fully loaded and parsed");
+console.log("DOM fully loaded and parsed");
 
-    let sessionId = getCookie(LR_SESSION_IDENTIFIER);
-    let userId = getCookie(LR_USER_IDENTIFIER);
+let sessionId = getCookie(LR_SESSION_IDENTIFIER);
+let userId = getCookie(LR_USER_IDENTIFIER);
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const queryParamUserId = urlParams.get(LR_USER_IDENTIFIER);
+const urlParams = new URLSearchParams(window.location.search);
+const queryParamUserId = urlParams.get(LR_USER_IDENTIFIER);
 
-    if (!sessionId) {
-      sessionId = generateUniqueId();
-      setCookie(LR_SESSION_IDENTIFIER, sessionId, 0.5); // 0.5 days expiration
-    }
+if (!sessionId) {
+  sessionId = generateUniqueId();
+  setCookie(LR_SESSION_IDENTIFIER, sessionId, 0.5); // 0.5 days expiration
+}
 
-    if (!userId && queryParamUserId) {
-      userId = queryParamUserId;
-      setCookie(LR_USER_IDENTIFIER, queryParamUserId, 30);
-    }
-    // A flag to ensure the event is sent only once
-    let eventSent = false;
+if (!userId && queryParamUserId) {
+  userId = queryParamUserId;
+  setCookie(LR_USER_IDENTIFIER, queryParamUserId, 30);
+}
+// A flag to ensure the event is sent only once
+let eventSent = false;
 
-    function sendEvent() {
-      if (!eventSent) {
-        lr_sendEvent_V2(userId, sessionId);
-        eventSent = true;
+function sendEvent() {
+  if (!eventSent) {
+    lr_sendEvent_V2(userId, sessionId);
+    eventSent = true;
 
-        // Optional: Remove listeners after firing the event to prevent repetitive execution
-        document.removeEventListener("scroll", sendEvent);
-        document.removeEventListener("click", sendEvent);
-      }
-    }
+    // Optional: Remove listeners after firing the event to prevent repetitive execution
+    // document.removeEventListener("scroll", sendEvent);
+    // document.removeEventListener("click", sendEvent);
+  }
+}
 
-    // Add event listeners for scroll and click events
-    document.addEventListener("scroll", sendEvent);
-    document.addEventListener("click", sendEvent);
-  });
-})();
+sendEvent();
+
+// Add event listeners for scroll and click events
+// document.addEventListener("scroll", sendEvent);
+// document.addEventListener("click", sendEvent);
+
+window.addEventListener("beforeunload", function () {
+  // Logic you want to run before the user leaves the page
+  console.log("User is attempting to navigate away.");
+  eventSent = false;
+});
